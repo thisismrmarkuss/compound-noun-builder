@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Compound Noun Builder</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f5f5f5;
+      text-align: center;
+      padding: 20px;
+      color: #333;
+    }
+    h1 {
+      font-size: 1.8em;
+    }
+    #instruction, #countdown, #difficultySelect {
+      font-size: 1.1em;
+      margin: 10px 0;
+    }
+    #wordPool, #buildZone {
+      display: flex;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin: 10px auto;
+      max-width: 600px;
+      min-height: 80px;
+      padding: 10px;
+      border: 2px dashed #3f51b5;
+      border-radius: 12px;
+      background: #fff;
+    }
+    .word {
+      background: #3f51b5;
+      color: white;
+      padding: 10px 15px;
+      margin: 5px;
+      border-radius: 8px;
+      cursor: grab;
+      user-select: none;
+    }
+    .zone {
+      border: 2px solid #ff9800;
+      min-height: 60px;
+      margin-top: 10px;
+      padding: 10px;
+    }
+    #feedback {
+      font-weight: bold;
+      font-size: 1.3em;
+      margin-top: 15px;
+    }
+    .correct {
+      background: #e8f0fe;
+      border-color: #3f51b5;
+    }
+    .incorrect {
+      background: #f44336;
+      color: white;
+    }
+    .controls button, .controls select {
+      margin: 5px;
+      padding: 8px 15px;
+      border-radius: 10px;
+      background: #3f51b5;
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-size: 1em;
+    }
+  </style>
+</head>
+<body>
+  <h1>🧱 Compound Noun Builder</h1>
+  <div id="instruction">Drag the correct words (and hyphens if needed) into the box to build a <strong id="type"></strong> compound noun. Watch out for decoys!</div>
+
+  <div id="difficultySelect">
+    Difficulty:
+    <select id="difficulty">
+      <option value="easy">Easy</option>
+      <option value="medium">Medium</option>
+      <option value="hard">Hard</option>
+    </select>
+    Timer:
+    <select id="timer">
+      <option value="30">30s</option>
+      <option value="60">1 minute</option>
+      <option value="90">1:30</option>
+    </select>
+  </div>
+
+  <div id="wordPool"></div>
+  <div id="buildZone" class="zone" ondrop="drop(event)" ondragover="allowDrop(event)"></div>
+
+  <div class="controls">
+    <button onclick="startGame()">Start</button>
+    <button onclick="resetGame()">Reset</button>
+  </div>
+  <div id="countdown"></div>
+  <div id="feedback"></div>
+
+  <script>
+    const data = {
+      closed: [
+        { parts: ['note', 'book'], answer: 'notebook' },
+        { parts: ['sun', 'flower'], answer: 'sunflower' },
+        { parts: ['tooth', 'brush'], answer: 'toothbrush' }
+      ],
+      hyphenated: [
+        { parts: ['son', '-', 'in', '-', 'law'], answer: 'son-in-law' },
+        { parts: ['mother', '-', 'in', '-', 'law'], answer: 'mother-in-law' }
+      ],
+      open: [
+        { parts: ['ice', 'cream'], answer: 'ice cream' },
+        { parts: ['post', 'office'], answer: 'post office' }
+      ]
+    };
+
+    let currentType = '';
+    let currentQuestion = null;
+
+    function startGame() {
+      document.getElementById('feedback').textContent = '';
+      loadNewRound();
+    }
+
+    function loadNewRound() {
+      document.getElementById('buildZone').innerHTML = '';
+      document.getElementById('buildZone').classList.remove('correct', 'incorrect');
+      document.getElementById('wordPool').innerHTML = '';
+
+      const types = Object.keys(data);
+      currentType = types[Math.floor(Math.random() * types.length)];
+      const questions = data[currentType];
+      currentQuestion = questions[Math.floor(Math.random() * questions.length)];
+
+      document.getElementById('type').textContent = currentType;
+      const pool = [...currentQuestion.parts, 'duck', 'hat', 'car'];
+      pool.sort(() => Math.random() - 0.5);
+
+      pool.forEach(word => {
+        const span = document.createElement('span');
+        span.textContent = word;
+        span.className = 'word';
+        span.setAttribute('draggable', 'true');
+        span.setAttribute('ondragstart', 'drag(event)');
+        document.getElementById('wordPool').appendChild(span);
+      });
+    }
+
+    function resetGame() {
+      document.getElementById('feedback').textContent = '';
+      document.getElementById('buildZone').innerHTML = '';
+      document.getElementById('buildZone').classList.remove('correct', 'incorrect');
+      document.getElementById('wordPool').innerHTML = '';
+      document.getElementById('type').textContent = '';
+    }
+
+    function allowDrop(ev) {
+      ev.preventDefault();
+    }
+
+    function drag(ev) {
+      ev.dataTransfer.setData('text', ev.target.textContent);
+    }
+
+    function drop(ev) {
+      ev.preventDefault();
+      const word = ev.dataTransfer.getData('text');
+      const span = document.createElement('span');
+      span.textContent = word;
+      span.className = 'word';
+      ev.target.appendChild(span);
+
+      const built = Array.from(ev.target.children).map(e => e.textContent);
+      const attempt = built.join(currentType === 'hyphenated' ? '' : currentType === 'open' ? ' ' : '');
+
+      if (built.length === currentQuestion.parts.length) {
+        if (attempt === currentQuestion.answer) {
+          ev.target.classList.add('correct');
+          document.getElementById('feedback').textContent = '✅ Okay! Somebody passed 6th grade.';
+          setTimeout(loadNewRound, 2000);
+        } else {
+          ev.target.classList.add('incorrect');
+          document.getElementById('feedback').textContent = `❌ That noun just filed a complaint against you. The correct answer was "${currentQuestion.answer}".`;
+          setTimeout(loadNewRound, 3000);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
